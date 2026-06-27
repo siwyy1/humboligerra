@@ -1,0 +1,4 @@
+.venv
+.vscode
+ingestion/configuration.json
+ingestion-weather/configuration.json
