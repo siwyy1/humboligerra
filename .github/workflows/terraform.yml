@@ -1,0 +1,40 @@
+name: terraform
+
+on:
+  workflow_run:
+    workflows: ["cd"]
+    types:
+      - completed
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  terraform:
+    runs-on: ubuntu-24.04
+
+    defaults:
+      run:
+        working-directory: terraform
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::380875917731:role/github-actions-role
+          aws-region: eu-central-1
+
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      -  run: terraform init
+ 
+      -  run: terraform validate
+
+      -  run: terraform plan
+
+      -  run: terraform apply -auto-approve
