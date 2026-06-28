@@ -28,4 +28,4 @@ jobs:
         run: aws sts get-caller-identity
 
       - run: |
-          aws s3 sync glue/ s3://siwy-humboligerra/scripts/
+          aws s3 sync glue/ s3://siwy-humboligerra2/scripts/
