@@ -9,3 +9,11 @@ services:
     command: >
       uv run pytest
 
+  dbttest:
+    build: ./
+    image: python_custom
+    container_name: dbttest2
+    volumes:
+      - ./:/app
+    command: >
+      uv run dbt test
