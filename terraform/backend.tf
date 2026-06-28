@@ -1,7 +1,7 @@
 terraform {
   backend "s3" {
-    bucket = "siwybucket"
+    bucket = "siwybucket2"
     key    = "dev/terraform.tfstate"
-    region = "us-east-1"
+    region = "eu-central-1"
   }
 }
