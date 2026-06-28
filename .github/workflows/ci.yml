@@ -1,0 +1,16 @@
+name: ci
+
+on:
+    pull_request:
+        branches:
+            -   main
+jobs:
+
+    dockercitest:
+        runs-on: ubuntu-24.04
+
+        steps:
+
+            -   uses: actions/checkout@v4
+
+            -   run: docker compose up pytest
