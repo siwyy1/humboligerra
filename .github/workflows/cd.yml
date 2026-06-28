@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
 
   deploy:
@@ -17,11 +21,11 @@ jobs:
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::380875917731:role/github-actions
+          role-to-assume: arn:aws:iam::380875917731:role/github-actions-role
           aws-region: eu-central-1
 
-      - name: Upload Glue Script
-        run: |
-          aws s3 cp \
-          ingestion/crypto_ingestion1.py \
-          s3://siwy-humboligerra/scripts/crypto_ingestion1.py
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
+
+      - run: |
+          aws s3 sync glue/ s3://siwy-humboligerra/scripts/
