@@ -11,11 +11,9 @@ from awsglue.utils import getResolvedOptions
 # Configuration
 #########################################################
 
-S3_PREFIX = "bronze/coingecko"
+S3_PREFIX = "bronze/coingecko/coin_details"
 
-URL = "https://api.coingecko.com/api/v3/coins/markets"
-
-PER_PAGE = 250
+URL = "https://api.coingecko.com/api/v3/coins"
 
 #########################################################
 # Logger
@@ -38,7 +36,8 @@ def get_job_arguments():
         sys.argv,
         [
             "BUCKET_NAME",
-            "API_KEY"
+            "API_KEY",
+            "COINS"
         ]
     )
 
@@ -54,25 +53,18 @@ def get_s3_client():
 # Download data
 #########################################################
 
-def get_data(api_key):
+def get_data(api_key, coins):
 
-    logger.info("Starting CoinGecko download...")
+    logger.info("Starting CoinGecko Coin Details download...")
 
     all_records = []
 
-    page = 1
+    for coin in coins:
 
-    while True:
-
-        logger.info(f"Downloading page {page}")
+        logger.info(f"Downloading {coin}")
 
         response = requests.get(
-            URL,
-            params={
-                "vs_currency": "usd",
-                "per_page": PER_PAGE,
-                "page": page
-            },
+            f"{URL}/{coin}",
             headers={
                 "x-cg-demo-api-key": api_key
             },
@@ -81,22 +73,12 @@ def get_data(api_key):
 
         response.raise_for_status()
 
-        records = response.json()
-
-        if not records:
-            logger.info("No more pages.")
-            break
-
-        logger.info(
-            f"Downloaded {len(records)} records from page {page}"
+        all_records.append(
+            response.json()
         )
 
-        all_records.extend(records)
-
-        page += 1
-
     logger.info(
-        f"Total downloaded records: {len(all_records)}"
+        f"Downloaded {len(all_records)} coins."
     )
 
     return all_records
@@ -123,34 +105,38 @@ def validate(data):
 
 def upload(data, bucket_name):
 
-    logger.info("Preparing upload...")
-
-    timestamp = datetime.now(timezone.utc)
-
-    key = (
-        f"{S3_PREFIX}/"
-        f"{timestamp:%Y-%m-%d}/"
-        f"{timestamp:%H%M%S}.json"
-    )
-
-    json_data = json.dumps(
-        data,
-        ensure_ascii=False,
-        indent=2
-    )
+    logger.info("Uploading data to S3...")
 
     s3 = get_s3_client()
 
-    s3.put_object(
-        Bucket=bucket_name,
-        Key=key,
-        Body=json_data,
-        ContentType="application/json"
-    )
+    timestamp = datetime.now(timezone.utc)
 
-    logger.info(
-        f"Uploaded file to s3://{bucket_name}/{key}"
-    )
+    for coin in data:
+
+        coin_id = coin["id"]
+
+        key = (
+            f"{S3_PREFIX}/"
+            f"{timestamp:%Y-%m-%d}/"
+            f"{coin_id}.json"
+        )
+
+        json_data = json.dumps(
+            coin,
+            ensure_ascii=False,
+            indent=2
+        )
+
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=key,
+            Body=json_data,
+            ContentType="application/json"
+        )
+
+        logger.info(
+            f"Uploaded {coin_id} to s3://{bucket_name}/{key}"
+        )
 
 #########################################################
 # Main
@@ -165,7 +151,15 @@ def main():
     bucket_name = args["BUCKET_NAME"]
     api_key = args["API_KEY"]
 
-    data = get_data(api_key)
+    coins = [
+        coin.strip()
+        for coin in args["COINS"].split(",")
+    ]
+
+    data = get_data(
+        api_key=api_key,
+        coins=coins
+    )
 
     validate(data)
 
